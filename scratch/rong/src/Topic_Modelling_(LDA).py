@@ -1,0 +1,476 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Topic Modelling (LDA).ipynb",
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/lrnilingy/texas-rrc-blowouts-nlp/blob/master/scratch/rong/src/Topic_Modelling_(LDA).py\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "2C5a3S5aQNyP",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import pandas as pd\n",
+        "url = 'https://raw.githubusercontent.com/lrnilingy/texas-rrc-blowouts-nlp/master/scratch/rong/data/blowouts_new_cleaned.csv'\n",
+        "data = pd.read_csv(url, error_bad_lines=False);\n"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "jwmoJNvcQZhE",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "data.head()\n",
+        "data['Remarks'] = data['Remarks'].astype(str)"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "mUef6zKdRVZU",
+        "colab_type": "code",
+        "outputId": "9cdf6f37-1afd-4bc6-afa9-1e3b0af25e10",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "print(len(documents))"
+      ],
+      "execution_count": 61,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "1488\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "AG_-AiMGSAPj",
+        "colab_type": "code",
+        "outputId": "492b0ab0-b399-4c9c-a9a5-b7541043c353",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 68
+        }
+      },
+      "source": [
+        "import gensim\n",
+        "from gensim.utils import simple_preprocess\n",
+        "from gensim.parsing.preprocessing import STOPWORDS\n",
+        "from nltk.stem import WordNetLemmatizer, SnowballStemmer\n",
+        "from nltk.stem.porter import *\n",
+        "import numpy as np\n",
+        "np.random.seed(2018)\n",
+        "import nltk\n",
+        "nltk.download('wordnet')"
+      ],
+      "execution_count": 62,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[nltk_data] Downloading package wordnet to /root/nltk_data...\n",
+            "[nltk_data]   Package wordnet is already up-to-date!\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "True"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 62
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "yaNvTfU0STfO",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "def lemmatize_stemming(text):\n",
+        "    return PorterStemmer().stem(WordNetLemmatizer().lemmatize(text, pos='v'))\n",
+        "def preprocess(text):\n",
+        "    result = []\n",
+        "    for token in gensim.utils.simple_preprocess(text):\n",
+        "        if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 3:\n",
+        "            result.append(lemmatize_stemming(token))\n",
+        "    return result\n",
+        "\n",
+        " "
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "r7a-tydeUFPB",
+        "colab_type": "code",
+        "outputId": "0d0de533-4c6b-4274-b486-325d4654f535",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 139
+        }
+      },
+      "source": [
+        "doc_sample = documents[documents['index'] == 1].values[0][0]\n",
+        "print('original document: ')\n",
+        "words = []\n",
+        "for word in doc_sample.split(' '):\n",
+        "    words.append(word)\n",
+        "print(words)\n",
+        "print('\\n\\n tokenized and lemmatized document: ')\n",
+        "print(preprocess(doc_sample))"
+      ],
+      "execution_count": 64,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "original document: \n",
+            "['Evacuated', 'residents', 'and', 'closed', 'CR', '107.', 'Stuffing', 'box', 'blew', 'out', 'because', 'BOP', 'and', 'rams', 'had', 'washed', 'out.']\n",
+            "\n",
+            "\n",
+            " tokenized and lemmatized document: \n",
+            "['evacu', 'resid', 'close', 'stuff', 'blow', 'ram', 'wash']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "m60xOry1UcN-",
+        "colab_type": "code",
+        "outputId": "e804bdd9-b6ff-4a5a-8f1a-b38b14dc6210",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 204
+        }
+      },
+      "source": [
+        "documents['Remarks'] = documents['Remarks'].astype(str)\n",
+        "processed_docs = documents['Remarks'].map(preprocess)\n",
+        "processed_docs[:10]\n"
+      ],
+      "execution_count": 65,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0    [pump, plug, encount, pressur, morn, blow, san...\n",
+              "1        [evacu, resid, close, stuff, blow, ram, wash]\n",
+              "2      [oprphan, pressur, replac, heaad, remedi, area]\n",
+              "3    [trip, hole, drill, near, current, approxim, t...\n",
+              "4    [attempt, remov, bull, plug, master, valv, tub...\n",
+              "5    [industri, incid, occur, workov, oper, instal,...\n",
+              "6    [head, fail, caus, joint, tube, head, blow, cr...\n",
+              "7    [approxim, scott, campbel, enerquest, oper, re...\n",
+              "8    [caus, blowout, unknown, unknown, volum, relea...\n",
+              "9    [frac, water, kill, plug, night, test, initi, ...\n",
+              "Name: Remarks, dtype: object"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 65
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "J0dWQgylVyWE",
+        "colab_type": "code",
+        "outputId": "6123f7f1-9e40-4f70-d459-8288732f04fc",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 204
+        }
+      },
+      "source": [
+        "dictionary = gensim.corpora.Dictionary(processed_docs)\n",
+        "count = 0\n",
+        "for k, v in dictionary.iteritems():\n",
+        "    print(k, v)\n",
+        "    count += 1\n",
+        "    if count > 10:\n",
+        "        break"
+      ],
+      "execution_count": 66,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "0 blow\n",
+            "1 encount\n",
+            "2 morn\n",
+            "3 plug\n",
+            "4 pressur\n",
+            "5 pump\n",
+            "6 sand\n",
+            "7 water\n",
+            "8 close\n",
+            "9 evacu\n",
+            "10 ram\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Sk9i8VTDX8c8",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "dictionary.filter_extremes(no_below=15, no_above=0.5, keep_n=100000)"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PjWjldLtYuFg",
+        "colab_type": "code",
+        "outputId": "9c7962b8-92fd-49f9-fa2a-e763e309bda7",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "bow_corpus = [dictionary.doc2bow(doc) for doc in processed_docs]\n",
+        "bow_corpus[1]"
+      ],
+      "execution_count": 68,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[(0, 1), (5, 1), (6, 1)]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 68
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "QACkJKQKYyHQ",
+        "colab_type": "code",
+        "outputId": "d011be21-3705-4c27-f322-2136ab20aefb",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 68
+        }
+      },
+      "source": [
+        "bow_doc_1 = bow_corpus[1]\n",
+        "for i in range(len(bow_doc_1)):\n",
+        "    print(\"Word {} (\\\"{}\\\") appears {} time.\".format(bow_doc_1[i][0], \n",
+        "                                               dictionary[bow_doc_1[i][0]], \n",
+        "bow_doc_1[i][1]))"
+      ],
+      "execution_count": 69,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Word 0 (\"blow\") appears 1 time.\n",
+            "Word 5 (\"close\") appears 1 time.\n",
+            "Word 6 (\"evacu\") appears 1 time.\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "I_g5LMuqY_Zx",
+        "colab_type": "code",
+        "outputId": "c137ffe4-d181-4d47-ef83-eff3658e2d42",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 102
+        }
+      },
+      "source": [
+        "from gensim import corpora, models\n",
+        "tfidf = models.TfidfModel(bow_corpus)\n",
+        "corpus_tfidf = tfidf[bow_corpus]\n",
+        "from pprint import pprint\n",
+        "for doc in corpus_tfidf:\n",
+        "    pprint(doc)\n",
+        "    break"
+      ],
+      "execution_count": 70,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[(0, 0.33840503224972146),\n",
+            " (1, 0.44065760544726934),\n",
+            " (2, 0.46905940894594683),\n",
+            " (3, 0.552340139017561),\n",
+            " (4, 0.40768437622612425)]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "pV48YerEZLfw",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "lda_model = gensim.models.LdaMulticore(bow_corpus, num_topics=5, id2word=dictionary, passes=2, workers=3)"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "wLDh19VjZUeQ",
+        "colab_type": "code",
+        "outputId": "516e97df-d730-492b-ee63-4ffc452e3c91",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 207
+        }
+      },
+      "source": [
+        "for idx, topic in lda_model.print_topics(-1):\n",
+        "    print('Topic: {} \\nWords: {}'.format(idx, topic))"
+      ],
+      "execution_count": 75,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Topic: 0 \n",
+            "Words: 0.122*\"case\" + 0.108*\"valv\" + 0.078*\"tube\" + 0.062*\"workov\" + 0.050*\"fail\" + 0.043*\"oper\" + 0.040*\"close\" + 0.037*\"product\" + 0.033*\"leak\" + 0.032*\"surfac\"\n",
+            "Topic: 1 \n",
+            "Words: 0.098*\"leak\" + 0.087*\"start\" + 0.071*\"hole\" + 0.068*\"come\" + 0.065*\"shut\" + 0.063*\"blow\" + 0.052*\"water\" + 0.048*\"produc\" + 0.046*\"tube\" + 0.046*\"packer\"\n",
+            "Topic: 2 \n",
+            "Words: 0.091*\"drill\" + 0.071*\"oper\" + 0.065*\"plug\" + 0.058*\"surfac\" + 0.057*\"flow\" + 0.056*\"caus\" + 0.047*\"case\" + 0.039*\"wellhead\" + 0.036*\"tube\" + 0.035*\"releas\"\n",
+            "Topic: 3 \n",
+            "Words: 0.088*\"kick\" + 0.073*\"pull\" + 0.072*\"drill\" + 0.071*\"blow\" + 0.063*\"begin\" + 0.055*\"flow\" + 0.050*\"case\" + 0.037*\"locat\" + 0.033*\"approxim\" + 0.032*\"close\"\n",
+            "Topic: 4 \n",
+            "Words: 0.112*\"blow\" + 0.084*\"wellhead\" + 0.077*\"control\" + 0.076*\"water\" + 0.060*\"blowout\" + 0.046*\"pump\" + 0.043*\"drill\" + 0.040*\"oper\" + 0.039*\"locat\" + 0.029*\"remov\"\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Fc8KHnVPZaab",
+        "colab_type": "code",
+        "outputId": "1eabaf15-91f6-4d4e-d6a6-920c8d4e2a0f",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 207
+        }
+      },
+      "source": [
+        "lda_model_tfidf = gensim.models.LdaMulticore(corpus_tfidf, num_topics=10, id2word=dictionary, passes=2, workers=4)\n",
+        "for idx, topic in lda_model_tfidf.print_topics(-1):\n",
+        "    print('Topic: {} Word: {}'.format(idx, topic))"
+      ],
+      "execution_count": 76,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Topic: 0 Word: 0.137*\"produc\" + 0.102*\"wellhead\" + 0.082*\"blowout\" + 0.056*\"caus\" + 0.050*\"product\" + 0.044*\"tube\" + 0.042*\"uncontrol\" + 0.042*\"releas\" + 0.039*\"begin\" + 0.038*\"case\"\n",
+            "Topic: 1 Word: 0.303*\"leak\" + 0.112*\"hole\" + 0.072*\"valv\" + 0.067*\"drill\" + 0.043*\"oper\" + 0.040*\"start\" + 0.040*\"case\" + 0.035*\"wellhead\" + 0.033*\"blow\" + 0.029*\"frac\"\n",
+            "Topic: 2 Word: 0.175*\"shut\" + 0.085*\"pipe\" + 0.074*\"drill\" + 0.071*\"kill\" + 0.058*\"blow\" + 0.054*\"kick\" + 0.052*\"fail\" + 0.049*\"close\" + 0.041*\"plug\" + 0.036*\"oper\"\n",
+            "Topic: 3 Word: 0.094*\"flow\" + 0.073*\"drill\" + 0.073*\"case\" + 0.066*\"hole\" + 0.058*\"frac\" + 0.057*\"tube\" + 0.056*\"control\" + 0.048*\"surfac\" + 0.039*\"valv\" + 0.033*\"start\"\n",
+            "Topic: 4 Word: 0.162*\"kick\" + 0.140*\"drill\" + 0.102*\"plug\" + 0.067*\"fail\" + 0.059*\"tube\" + 0.052*\"take\" + 0.046*\"start\" + 0.038*\"work\" + 0.036*\"blow\" + 0.032*\"hole\"\n",
+            "Topic: 5 Word: 0.090*\"water\" + 0.079*\"control\" + 0.066*\"tube\" + 0.065*\"flow\" + 0.056*\"locat\" + 0.054*\"caus\" + 0.044*\"fluid\" + 0.038*\"uncontrol\" + 0.036*\"wellhead\" + 0.032*\"begin\"\n",
+            "Topic: 6 Word: 0.300*\"blow\" + 0.122*\"workov\" + 0.061*\"remov\" + 0.045*\"start\" + 0.045*\"releas\" + 0.039*\"case\" + 0.038*\"begin\" + 0.036*\"pressur\" + 0.033*\"plug\" + 0.025*\"close\"\n",
+            "Topic: 7 Word: 0.222*\"valv\" + 0.162*\"case\" + 0.095*\"break\" + 0.079*\"surfac\" + 0.060*\"packer\" + 0.042*\"pull\" + 0.030*\"pipe\" + 0.027*\"locat\" + 0.027*\"hole\" + 0.025*\"blow\"\n",
+            "Topic: 8 Word: 0.138*\"pump\" + 0.129*\"pressur\" + 0.063*\"control\" + 0.047*\"leak\" + 0.045*\"close\" + 0.044*\"valv\" + 0.041*\"caus\" + 0.040*\"kick\" + 0.040*\"oper\" + 0.033*\"releas\"\n",
+            "Topic: 9 Word: 0.199*\"oper\" + 0.189*\"blowout\" + 0.086*\"come\" + 0.068*\"drill\" + 0.055*\"plug\" + 0.048*\"water\" + 0.039*\"blow\" + 0.030*\"evacu\" + 0.029*\"packer\" + 0.025*\"pull\"\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "u6MiEQ8cbrEl",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    }
+  ]
+}
